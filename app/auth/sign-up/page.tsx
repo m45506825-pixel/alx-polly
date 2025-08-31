@@ -3,16 +3,44 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { useAuth } from '@/contexts/auth-context';
+import { useRouter } from 'next/navigation';
 
 export default function SignUp() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { signUp } = useAuth();
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Sign up logic will be implemented here
-    console.log('Sign up attempt with:', { name, email, password });
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { error, user } = await signUp(email, password, name);
+      
+      if (error) {
+        setError(error.message);
+        return;
+      }
+      
+      // Redirect to polls page on successful registration
+      // Note: Depending on Supabase settings, the user might need to confirm their email first
+      if (user) {
+        router.push('/polls');
+      } else {
+        setError('Please check your email to confirm your account');
+      }
+    } catch (err) {
+      setError('An unexpected error occurred');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -79,9 +107,15 @@ export default function SignUp() {
             </div>
           </div>
 
+          {error && (
+            <div className="text-red-500 text-sm text-center">
+              {error}
+            </div>
+          )}
+          
           <div>
-            <Button type="submit" className="w-full">
-              Create account
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Creating account...' : 'Create account'}
             </Button>
           </div>
         </form>
